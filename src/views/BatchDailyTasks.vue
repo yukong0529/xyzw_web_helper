@@ -25,6 +25,9 @@
         <n-button size="small" @click="resetBottles" :disabled="isRunning || selectedTokens.length === 0">
           重置罐子
         </n-button>
+        <n-button size="small" @click="batchlingguanzi" :disabled="isRunning || selectedTokens.length === 0">
+          一键领取罐子
+        </n-button>
         <n-button size="small" @click="climbTower" :disabled="isRunning || selectedTokens.length === 0">
           一键爬塔
         </n-button>
@@ -38,6 +41,21 @@
         <n-button size="small" @click="batchClaimCars"
           :disabled="isRunning || selectedTokens.length === 0 || !isCarActivityOpen">
           一键收车
+        </n-button>
+        <n-button size="small" @click="batchbaoku13" :disabled="isRunning || selectedTokens.length === 0 || !isbaokuActivityOpen">
+          一键宝库前3层
+        </n-button>
+        <n-button size="small" @click="batchbaoku45" :disabled="isRunning || selectedTokens.length === 0 || !isbaokuActivityOpen">
+          一键宝库4,5层
+        </n-button>
+        <n-button size="small" @click="batchmengjing" :disabled="isRunning || selectedTokens.length === 0 || !ismengjingActivityOpen">
+          一键梦境
+        </n-button>
+        <n-button size="small" @click="batchclubsign" :disabled="isRunning || selectedTokens.length === 0">
+          一键俱乐部签到
+        </n-button>
+        <n-button size="small" @click="batcharenafight" :disabled="isRunning || selectedTokens.length === 0 || !isarenaActivityOpen">
+          一键竞技场战斗3次
         </n-button>
       </n-space>
       <n-space vertical>
@@ -143,6 +161,19 @@ const isCarActivityOpen = computed(() => {
   // 1=Mon, 2=Tue, 3=Wed
   return day >= 1 && day <= 3
 })
+const ismengjingActivityOpen = computed(() => {
+  const day = new Date().getDay()
+  return day === 0 || day === 1 || day === 3 || day === 4
+})
+const isbaokuActivityOpen = computed(() => {
+  const day = new Date().getDay()
+  return day != 1 && day != 2
+})
+const isarenaActivityOpen = computed(() => {
+  const hour = new Date().getHours()
+  return hour > 8 && hour < 22
+})
+
 const selectedTokens = ref([])
 const tokenStatus = ref({}) // { tokenId: 'waiting' | 'running' | 'completed' | 'failed' }
 const isRunning = ref(false)
@@ -165,7 +196,7 @@ const currentSettings = reactive({
   blackMarketPurchase: true
 })
 
-const formationOptions = [1, 2, 3, 4].map(v => ({ label: `阵容${v}`, value: v }))
+const formationOptions = [1, 2, 3, 4, 5, 6].map(v => ({ label: `阵容${v}`, value: v }))
 const bossTimesOptions = [0, 1, 2, 3, 4].map(v => ({ label: `${v}次`, value: v }))
 
 const loadSettings = (tokenId) => {
@@ -243,6 +274,19 @@ const getStatusText = (tokenId) => {
   if (status === 'failed') return '失败'
   if (status === 'running') return '执行中'
   return '等待中'
+}
+
+const pickArenaTargetId = (targets) => {
+  const candidate =
+    targets?.rankList?.[0] ||
+    targets?.roleList?.[0] ||
+    targets?.targets?.[0] ||
+    targets?.targetList?.[0] ||
+    targets?.list?.[0]
+
+  if (candidate?.roleId) return candidate.roleId
+  if (candidate?.id) return candidate.id
+  return targets?.roleId || targets?.id
 }
 
 const addLog = (log) => {
@@ -344,19 +388,14 @@ const claimHangUpRewards = async () => {
       await ensureConnection(tokenId)
 
       // Execute commands
-      // 1. Add time 4 times
-      for (let i = 0; i < 4; i++) {
-        addLog({ time: new Date().toLocaleTimeString(), message: `挂机加钟 ${i + 1}/4`, type: 'info' })
-        await tokenStore.sendMessageWithPromise(tokenId, 'system_mysharecallback', { isSkipShareCard: true, type: 2 }, 5000)
-        await new Promise(r => setTimeout(r, 500))
-      }
 
-      // 2. Claim reward
+      // 1. Claim reward
       addLog({ time: new Date().toLocaleTimeString(), message: `领取挂机奖励`, type: 'info' })
       await tokenStore.sendMessageWithPromise(tokenId, 'system_claimhangupreward', {}, 5000)
       await new Promise(r => setTimeout(r, 500))
 
-      // 3. Add time 4 more time
+      
+      // 2. Add time 4 times
       for (let i = 0; i < 4; i++) {
         addLog({ time: new Date().toLocaleTimeString(), message: `挂机加钟 ${i + 1}/4`, type: 'info' })
         await tokenStore.sendMessageWithPromise(tokenId, 'system_mysharecallback', { isSkipShareCard: true, type: 2 }, 5000)
@@ -381,56 +420,315 @@ const claimHangUpRewards = async () => {
   message.success('批量领取挂机结束')
 }
 
-const batchAddHangUpTime = async () => {
+const batchbaoku13 = async () => {
   if (selectedTokens.value.length === 0) return
-
   isRunning.value = true
   shouldStop.value = false
   logs.value = []
-
   // Reset status
   selectedTokens.value.forEach(id => {
     tokenStatus.value[id] = 'waiting'
   })
-
   for (const tokenId of selectedTokens.value) {
     if (shouldStop.value) break
-
     currentRunningTokenId.value = tokenId
     tokenStatus.value[tokenId] = 'running'
     currentProgress.value = 0
-
     const token = tokens.value.find(t => t.id === tokenId)
+    try {
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== 开始一键宝库: ${token.name} ===`, type: 'info' })
+      await ensureConnection(tokenId)
+      const bosstowerinfo = await tokenStore.sendMessageWithPromise(tokenId, "bosstower_getinfo", {})
+      const towerId = bosstowerinfo.bossTower.towerId
+      if (towerId >= 1 && towerId <=3 )
+      {
+      for (let i = 0; i < 2; i++) {
+        if (shouldStop.value) break
+        await tokenStore.sendMessageWithPromise(tokenId, 'bosstower_startboss', {})
+        await new Promise(r => setTimeout(r, 500))
+      }
+      for (let i = 0; i < 9; i++) {
+        if (shouldStop.value) break
+        await tokenStore.sendMessageWithPromise(tokenId, 'bosstower_startbox', {})
+        await new Promise(r => setTimeout(r, 500))
+      }
+      }
+      tokenStatus.value[tokenId] = 'completed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== ${token.name} 宝库战斗已完成，请上线手动领取奖励 ===`, type: 'success' })
+    } catch (error) {
+      console.error(error)
+      tokenStatus.value[tokenId] = 'failed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `宝库战斗失败: ${error.message || '未知错误'}`, type: 'error' })
+    }
+    currentProgress.value = 100
+    await new Promise(r => setTimeout(r, 500))
+  }
+  isRunning.value = false
+  currentRunningTokenId.value = null
+  message.success('批量宝库结束')
+}
 
+const batchbaoku45 = async () => {
+  if (selectedTokens.value.length === 0) return
+  isRunning.value = true
+  shouldStop.value = false
+  logs.value = []
+  // Reset status
+  selectedTokens.value.forEach(id => {
+    tokenStatus.value[id] = 'waiting'
+  })
+  for (const tokenId of selectedTokens.value) {
+    if (shouldStop.value) break
+    currentRunningTokenId.value = tokenId
+    tokenStatus.value[tokenId] = 'running'
+    currentProgress.value = 0
+    const token = tokens.value.find(t => t.id === tokenId)
+    try {
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== 开始一键宝库: ${token.name} ===`, type: 'info' })
+      await ensureConnection(tokenId)
+      const bosstowerinfo = await tokenStore.sendMessageWithPromise(tokenId, "bosstower_getinfo", {})
+      const towerId = bosstowerinfo.bossTower.towerId
+      if (towerId >= 4 && towerId <=5 )
+      {
+      for (let i = 0; i < 2; i++) {
+        if (shouldStop.value) break
+        await tokenStore.sendMessageWithPromise(tokenId, 'bosstower_startboss', {})
+        await new Promise(r => setTimeout(r, 500))
+      }
+      }
+      tokenStatus.value[tokenId] = 'completed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== ${token.name} 宝库战斗已完成 ===`, type: 'success' })
+    } catch (error) {
+      console.error(error)
+      tokenStatus.value[tokenId] = 'failed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `宝库战斗失败: ${error.message || '未知错误'}`, type: 'error' })
+    }
+    currentProgress.value = 100
+    await new Promise(r => setTimeout(r, 500))
+  }
+  isRunning.value = false
+  currentRunningTokenId.value = null
+  message.success('批量宝库结束')
+}
+
+const batchmengjing = async () => {
+  if (selectedTokens.value.length === 0) return
+  isRunning.value = true
+  shouldStop.value = false
+  logs.value = []
+  // Reset status
+  selectedTokens.value.forEach(id => {
+    tokenStatus.value[id] = 'waiting'
+  })
+  for (const tokenId of selectedTokens.value) {
+    if (shouldStop.value) break
+    currentRunningTokenId.value = tokenId
+    tokenStatus.value[tokenId] = 'running'
+    currentProgress.value = 0
+    const token = tokens.value.find(t => t.id === tokenId)
+    try {
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== 开始一键宝库: ${token.name} ===`, type: 'info' })
+      await ensureConnection(tokenId)
+      if (shouldStop.value) break
+      const mjbattleTeam = { "0": 107 }
+      const dayOfWeek = new Date().getDay()
+      if (dayOfWeek === 0 | dayOfWeek === 1 | dayOfWeek === 3 | dayOfWeek === 4)
+      {
+      await tokenStore.sendMessageWithPromise(tokenId, 'dungeon_selecthero', { battleTeam: mjbattleTeam }, 5000)
+      await new Promise(r => setTimeout(r, 500))
+      tokenStatus.value[tokenId] = 'completed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== ${token.name} 咸王梦境已完成 ===`, type: 'success' })
+      }
+      else
+      {
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== ${token.name} 当前未在开放时间 ===`, type: 'error' })
+      break
+      }
+    } catch (error) {
+      console.error(error)
+      tokenStatus.value[tokenId] = 'failed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `咸王梦境失败: ${error.message || '未知错误'}`, type: 'error' })
+    }
+    currentProgress.value = 100
+    await new Promise(r => setTimeout(r, 500))
+  }
+  isRunning.value = false
+  currentRunningTokenId.value = null
+  message.success('批量梦境结束')
+}
+
+const batchlingguanzi = async () => {
+  if (selectedTokens.value.length === 0) return
+  isRunning.value = true
+  shouldStop.value = false
+  logs.value = []
+  // Reset status
+  selectedTokens.value.forEach(id => {
+    tokenStatus.value[id] = 'waiting'
+  })
+  for (const tokenId of selectedTokens.value) {
+    if (shouldStop.value) break
+    currentRunningTokenId.value = tokenId
+    tokenStatus.value[tokenId] = 'running'
+    currentProgress.value = 0
+    const token = tokens.value.find(t => t.id === tokenId)
+    try {
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== 开始一键领取盐罐: ${token.name} ===`, type: 'info' })
+      await ensureConnection(tokenId)
+      if (shouldStop.value) break
+      await tokenStore.sendMessageWithPromise(tokenId, 'bottlehelper_claim', {}, 5000)
+      await new Promise(r => setTimeout(r, 500))
+      tokenStatus.value[tokenId] = 'completed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== ${token.name} 领取盐罐已完成 ===`, type: 'success' })
+    } catch (error) {
+      console.error(error)
+      tokenStatus.value[tokenId] = 'failed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `领取盐罐失败: ${error.message || '未知错误'}`, type: 'error' })
+    }
+    currentProgress.value = 100
+    await new Promise(r => setTimeout(r, 500))
+  }
+  isRunning.value = false
+  currentRunningTokenId.value = null
+  message.success('批量领取盐罐结束')
+}
+
+const batchclubsign = async () => {
+  if (selectedTokens.value.length === 0) return
+  isRunning.value = true
+  shouldStop.value = false
+  logs.value = []
+  // Reset status
+  selectedTokens.value.forEach(id => {
+    tokenStatus.value[id] = 'waiting'
+  })
+  for (const tokenId of selectedTokens.value) {
+    if (shouldStop.value) break
+    currentRunningTokenId.value = tokenId
+    tokenStatus.value[tokenId] = 'running'
+    currentProgress.value = 0
+    const token = tokens.value.find(t => t.id === tokenId)
+    try {
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== 开始一键俱乐部签到: ${token.name} ===`, type: 'info' })
+      await ensureConnection(tokenId)
+      if (shouldStop.value) break
+      await tokenStore.sendMessageWithPromise(tokenId, 'legion_signin', {}, 5000)
+      await new Promise(r => setTimeout(r, 500))
+      tokenStatus.value[tokenId] = 'completed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== ${token.name} 俱乐部签到已完成 ===`, type: 'success' })
+    } catch (error) {
+      console.error(error)
+      tokenStatus.value[tokenId] = 'failed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `俱乐部签到失败: ${error.message || '未知错误'}`, type: 'error' })
+    }
+    currentProgress.value = 100
+    await new Promise(r => setTimeout(r, 500))
+  }
+  isRunning.value = false
+  currentRunningTokenId.value = null
+  message.success('批量俱乐部签到结束')
+}
+
+const batcharenafight = async () => {
+  if (selectedTokens.value.length === 0) return
+  isRunning.value = true
+  shouldStop.value = false
+  logs.value = []
+  // Reset status
+  selectedTokens.value.forEach(id => {
+    tokenStatus.value[id] = 'waiting'
+  })
+  for (const tokenId of selectedTokens.value) {
+    if (shouldStop.value) break
+    currentRunningTokenId.value = tokenId
+    tokenStatus.value[tokenId] = 'running'
+    currentProgress.value = 0
+    const token = tokens.value.find(t => t.id === tokenId)
+    try {
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== 开始一键竞技场战斗: ${token.name} ===`, type: 'info' })
+      await ensureConnection(tokenId)
+      if (shouldStop.value) break
+      for (let i = 0; i < 3; i++) {
+      // 开始竞技场
+      await tokenStore.sendMessageWithPromise(tokenId, "arena_startarea", {});
+      let targets
+      try {
+      targets = await tokenStore.sendMessageWithPromise(tokenId, 'arena_getareatarget', {})
+      } catch (err) {
+      message.error(`获取竞技场目标失败：${err.message}`)
+      break
+      }        
+      const targetId = pickArenaTargetId(targets)
+      if (!targetId) 
+      { 
+      addLog({ time: new Date().toLocaleTimeString(), message: `未找到可用的竞技场目标: ${error.message || '未知错误'}`, type: 'error' })
+      break
+      }
+      try { 
+      await tokenStore.sendMessageWithPromise(tokenId, 'fight_startareaarena', {targetId})
+      addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} 竞技场战斗 ${i + 1}/3`, type: 'info' })
+      await new Promise(r => setTimeout(r, 500))
+      }
+      catch (e) 
+      { 
+      addLog({ time: new Date().toLocaleTimeString(), message: `竞技场对决失败: ${error.message || '未知错误'}`, type: 'error' })
+      }
+      }
+      await new Promise(r => setTimeout(r, 500))
+      tokenStatus.value[tokenId] = 'completed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `=== ${token.name} 竞技场战斗已完成 ===`, type: 'success' })
+    } catch (error) {
+      console.error(error)
+      tokenStatus.value[tokenId] = 'failed'
+      addLog({ time: new Date().toLocaleTimeString(), message: `竞技场战斗失败: ${error.message || '未知错误'}`, type: 'error' })
+    }
+    currentProgress.value = 100
+    await new Promise(r => setTimeout(r, 500))
+  }
+  isRunning.value = false
+  currentRunningTokenId.value = null
+  message.success('批量竞技场战斗结束')
+}
+
+const batchAddHangUpTime = async () => {
+  if (selectedTokens.value.length === 0) return
+  isRunning.value = true
+  shouldStop.value = false
+  logs.value = []
+  // Reset status
+  selectedTokens.value.forEach(id => {
+    tokenStatus.value[id] = 'waiting'
+  })
+  for (const tokenId of selectedTokens.value) {
+    if (shouldStop.value) break
+    currentRunningTokenId.value = tokenId
+    tokenStatus.value[tokenId] = 'running'
+    currentProgress.value = 0
+    const token = tokens.value.find(t => t.id === tokenId)
     try {
       addLog({ time: new Date().toLocaleTimeString(), message: `=== 开始一键加钟: ${token.name} ===`, type: 'info' })
-
       await ensureConnection(tokenId)
-
       for (let i = 0; i < 4; i++) {
         if (shouldStop.value) break
         addLog({ time: new Date().toLocaleTimeString(), message: `执行加钟 ${i + 1}/4`, type: 'info' })
         await tokenStore.sendMessageWithPromise(tokenId, 'system_mysharecallback', { isSkipShareCard: true, type: 2 }, 5000)
         await new Promise(r => setTimeout(r, 500))
       }
-
       tokenStatus.value[tokenId] = 'completed'
       addLog({ time: new Date().toLocaleTimeString(), message: `=== ${token.name} 加钟完成 ===`, type: 'success' })
-
     } catch (error) {
       console.error(error)
       tokenStatus.value[tokenId] = 'failed'
       addLog({ time: new Date().toLocaleTimeString(), message: `加钟失败: ${error.message || '未知错误'}`, type: 'error' })
     }
-
     currentProgress.value = 100
     await new Promise(r => setTimeout(r, 500))
   }
-
   isRunning.value = false
   currentRunningTokenId.value = null
   message.success('批量加钟结束')
 }
+
 
 const ensureConnection = async (tokenId) => {
   // Always fetch the latest token data from the store
@@ -936,6 +1234,7 @@ const batchClaimCars = async () => {
         if (canClaim(car)) {
           try {
             await tokenStore.sendMessageWithPromise(tokenId, 'car_claim', { carId: String(car.id) }, 10000)
+            await tokenStore.sendMessageWithPromise(token.id, 'car_research', { researchId: 1 }, 5000)
             claimedCount++
             addLog({ time: new Date().toLocaleTimeString(), message: `收车成功: ${gradeLabel(car.color)}`, type: 'success' })
           } catch (e) {

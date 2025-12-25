@@ -215,6 +215,8 @@ export function registerDefaultCommands(reg) {
     .register("nightmare_getroleinfo")
 	.register("dungeon_selecthero")
     .register("bosstower_gethelprank")
+	.register("dungeon_spresetteam_getinfoelecthero")
+    .register("dungeon_buymerchant")
     // 活动/任务
     .register("activity_get")
 	.register("activity_recyclewarorderrewardclaim")
