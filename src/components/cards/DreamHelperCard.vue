@@ -274,7 +274,7 @@ async function selectDreamTeam() {
       return;
     }
 
-    const response = await tokenStore.sendMessageWithPromise(tokenId, 'dungeon_spresetteam_getinfoelecthero', {
+    const response = await tokenStore.sendMessageWithPromise(tokenId, 'dungeon_selecthero', {
       battleTeam: battleTeam
     }, 15000);
     
