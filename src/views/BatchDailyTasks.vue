@@ -668,56 +668,55 @@
     </n-modal>
 
     <!-- Batch Settings Modal -->
-    <n-modal v-model:show="showBatchSettingsModal" preset="card" title="任务设置"
-      style="width: 90%; max-width: 400px">
+    <n-modal v-model:show="showBatchSettingsModal" preset="card" title="任务设置" style="width: 90%; max-width: 400px">
       <div class="settings-content">
-        <div style="margin-bottom: 20px; color: #6b7280; font-size: 14px">
-          设置定时任务执行批量使用操作时的数量设置
-        </div>
+        <n-divider title-placement="left" style="margin: 1px 0">定时批量操作设置</n-divider>
         <div class="settings-grid">
-          <div class="setting-item">
+          <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">定时批量开箱数量（10的倍数）</label>
-            <n-input-number v-model:value="batchSettings.boxCount" :min="10" :max="10000" :step="10" size="small" />
+            <n-input-number v-model:value="batchSettings.boxCount" :min="10" :max="10000" :step="10" size="small" style="width: 140px;" />
           </div>
-          <div class="setting-item">
+          <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">定时批量钓鱼数量（10的倍数）</label>
-            <n-input-number v-model:value="batchSettings.fishCount" :min="10" :max="10000" :step="10" size="small" />
+            <n-input-number v-model:value="batchSettings.fishCount" :min="10" :max="10000" :step="10" size="small" style="width: 140px;" />
           </div>
-          <div class="setting-item">
+          <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">定时批量招募数量（10的倍数）</label>
-            <n-input-number v-model:value="batchSettings.recruitCount" :min="10" :max="10000" :step="10" size="small" />
+            <n-input-number v-model:value="batchSettings.recruitCount" :min="10" :max="10000" :step="10" size="small" style="width: 140px;" />
           </div>
-          <div class="setting-item">
+          <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">默认宝箱类型</label>
-            <n-select v-model:value="batchSettings.defaultBoxType" :options="boxTypeOptions" size="small" />
+            <n-select v-model:value="batchSettings.defaultBoxType" :options="boxTypeOptions" size="small" style="width: 140px;" />
           </div>
-          <div class="setting-item">
+          <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">默认鱼竿类型</label>
-            <n-select v-model:value="batchSettings.defaultFishType" :options="fishTypeOptions" size="small" />
+            <n-select v-model:value="batchSettings.defaultFishType" :options="fishTypeOptions" size="small" style="width: 140px;" />
           </div>
-          <div class="setting-item">
+          <n-divider title-placement="left" style="margin: 1px 0">功法定时赠送设置</n-divider>
+          <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">接收者ID</label>
-            <n-input v-model:value="batchSettings.receiverId" type="text" placeholder="请输入接收者ID" size="small" />
+            <n-input v-model:value="batchSettings.receiverId" type="text" placeholder="请输入接收者ID" size="small" style="width: 140px;" />
           </div>
-          <div class="setting-item">
+          <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">密码设置</label>
-            <n-input v-model:value="batchSettings.password" type="password" placeholder="请输入密码" size="small" />
+            <n-input v-model:value="batchSettings.password" type="password" placeholder="请输入密码" size="small" style="width: 140px;" />
           </div>
+          <n-divider title-placement="left" style="margin: 1px 0">定时任务设置</n-divider>
           <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">隐藏底部定时任务模块</label>
             <n-switch v-model:value="batchSettings.hideScheduledTasksModule" />
           </div>
           <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">账号列表每行显示数量</label>
-            <n-input-number v-model:value="batchSettings.tokenListColumns" :min="1" :max="10" :step="1" size="small" style="width: 100px;" />
+            <n-input-number v-model:value="batchSettings.tokenListColumns" :min="1" :max="10" :step="1" size="small" style="width: 140px;" />
           </div>
           <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">日常任务命令执行后延迟(ms)</label>
-            <n-input-number v-model:value="batchSettings.commandDelay" :min="100" :max="2000" :step="100" size="small" style="width: 100px;" />
+            <n-input-number v-model:value="batchSettings.commandDelay" :min="100" :max="2000" :step="100" size="small" style="width: 140px;" />
           </div>
           <div class="setting-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
             <label class="setting-label">日常任务任务间延迟(ms)</label>
-            <n-input-number v-model:value="batchSettings.taskDelay" :min="100" :max="2000" :step="100" size="small" style="width: 100px;" />
+            <n-input-number v-model:value="batchSettings.taskDelay" :min="100" :max="2000" :step="100" size="small" style="width: 140px;" />
           </div>
         </div>
         <div class="modal-actions" style="margin-top: 20px; text-align: right">

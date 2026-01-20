@@ -1173,7 +1173,6 @@ const cancelHelper = () => {
     color: var(--text-tertiary);
     margin-top: 8px;
   }
-}
 
 :deep(.n-select) {
   .n-select-tag {
@@ -1194,3 +1193,4 @@ const cancelHelper = () => {
     padding: 24px;
   }
 }
+</style>
