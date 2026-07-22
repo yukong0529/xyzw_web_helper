@@ -4,6 +4,7 @@ import { getTowerActId } from "../towerActId.js";
  * 爬塔类任务
  * 包含: climbTower, climbWeirdTower, batchClaimFreeEnergy
  */
+import { normalizeWeirdTowerMaxClimb } from "../towerClimbLimit.js";
 
 /**
  * 创建爬塔类任务执行器
@@ -27,6 +28,7 @@ export function createTasksTower(deps) {
     currentRunningTokenId,
     currentSettings,
     loadSettings,
+    weirdTowerMaxClimb,
   } = deps;
 
   /**
@@ -367,8 +369,16 @@ export function createTasksTower(deps) {
         });
 
         let count = 0;
-        const MAX_CLIMB = 100;
+        const MAX_CLIMB = normalizeWeirdTowerMaxClimb(
+          weirdTowerMaxClimb?.value ?? weirdTowerMaxClimb,
+        );
         let consecutiveFailures = 0;
+
+        addLog({
+          time: new Date().toLocaleTimeString(),
+          message: `${token.name} 本次最多爬怪异塔 ${MAX_CLIMB} 次`,
+          type: "info",
+        });
 
         while (currentEnergy > 0 && count < MAX_CLIMB && !shouldStop.value) {
           try {
@@ -866,6 +876,47 @@ export function createTasksTower(deps) {
               }
             }
           }
+        }
+
+        // 闯关结束后循环领取奖励
+        addLog({
+          time: new Date().toLocaleTimeString(),
+          message: `${token.name} 闯关结束，开始领取奖励`,
+          type: "info",
+        });
+        let claimCount = 0;
+        for (const { actId: id } of actIdList) {
+          const claimActId = id % 10 === 1 ? id + 1 : id;
+          try {
+            while (!shouldStop.value) {
+              await tokenStore.sendMessageWithPromise(
+                tokenId,
+                "activity_startactegame",
+                { actId: claimActId },
+                5000,
+              );
+              claimCount++;
+              addLog({
+                time: new Date().toLocaleTimeString(),
+                message: `${token.name} 活动 ${claimActId} 领取奖励第 ${claimCount} 次`,
+                type: "success",
+              });
+              await new Promise((r) => setTimeout(r, 300));
+            }
+          } catch (e) {
+            addLog({
+              time: new Date().toLocaleTimeString(),
+              message: `${token.name} 活动 ${claimActId} 领取结束（共 ${claimCount} 次）`,
+              type: claimCount > 0 ? "success" : "info",
+            });
+          }
+        }
+        if (claimCount > 0) {
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 领取奖励 ${claimCount} 次`,
+            type: "success",
+          });
         }
 
         tokenStatus.value[tokenId] = "completed";
