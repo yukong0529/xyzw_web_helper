@@ -2,13 +2,14 @@
  * 俱乐部战斗工具函数
  */
 
+import * as XLSX from "xlsx";
+import { downloadExcelWithOptions } from "./excelExport.js";
+
 /**
  * 获取最近的周六日期
  * 如果今天是周六，返回今天的日期；否则返回上周六的日期
  * @returns {string} 格式化的日期字符串 YYYY/MM/DD
  */
-import * as XLSX from "xlsx";
-
 export function getLastSaturday() {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0=周日, 1=周一, ..., 6=周六
@@ -505,7 +506,7 @@ export function formatBattleRecordsForExport(roleDetailsList, queryDate) {
   const fileName = `俱乐部战绩_${queryDate.replace(/\//g, "-")}.xlsx`;
 
   // 触发下载
-  XLSX.writeFile(workbook, fileName);
+  downloadExcelWithOptions(workbook, fileName);
   return lines.join("\n");
 }
 /**

@@ -3,6 +3,7 @@
  */
 
 import * as XLSX from "xlsx";
+import { downloadExcelWithOptions } from "./excelExport.js";
 
 /**
  * 获取今天日期
@@ -145,7 +146,7 @@ export function formatWarrankRecordsForExport(legionRankList, queryDate) {
   const fileName = `黄金积分详情_${queryDate.replace(/\//g, "-")}.xlsx`;
 
   // 触发下载
-  XLSX.writeFile(workbook, fileName);
+  downloadExcelWithOptions(workbook, fileName);
   return "";
 }
 

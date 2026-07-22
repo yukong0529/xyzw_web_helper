@@ -144,7 +144,7 @@ export function registerDefaultCommands(reg) {
     .registerHeartbeat()
     // 角色/系统
     .register("role_getroleinfo", {
-      clientVersion: "2.21.2-fa918e1997301834-wx",
+      clientVersion: "2.34.1-efbf6eee83ebe0b7-wx",
       inviteUid: 0,
       platform: "hortor",
       platformExt: "mix",
