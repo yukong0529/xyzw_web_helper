@@ -79,3 +79,4 @@ dist.zip
 *.bin
 bin/
 server/config.json
+.trae/
