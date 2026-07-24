@@ -909,7 +909,7 @@ export function createTasksTower(deps) {
           claimCount++;
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `${token.name} 活动 ${rewardPlan.actId} 领取奖励第 ${claimCount}/${rewardPlan.total} 次`,
+            message: `${token.name} 活动 ${getTowerActId()} 领取奖励第 ${claimCount}/${rewardPlan.total} 次`,
             type: "success",
           });
 
