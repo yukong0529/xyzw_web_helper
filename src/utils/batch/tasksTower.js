@@ -1,4 +1,5 @@
 import { getTowerActId } from "../towerActId.js";
+import { getSkinChallengeRewardPlan } from "../skinChallengeReward.js";
 
 /**
  * 爬塔类任务
@@ -878,44 +879,56 @@ export function createTasksTower(deps) {
           }
         }
 
-        // 闯关结束后循环领取奖励
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `${token.name} 闯关结束，开始领取奖励`,
-          type: "info",
-        });
+        // 闯关结束后，按活动道具数量领取奖励。
+        const roleInfo = await tokenStore.sendGetRoleInfo(tokenId);
+        const rewardPlan = getSkinChallengeRewardPlan(
+          roleInfo,
+          getTowerActId(),
+        );
         let claimCount = 0;
-        for (const { actId: id } of actIdList) {
-          const claimActId = id % 10 === 1 ? id + 1 : id;
-          try {
-            while (!shouldStop.value) {
-              await tokenStore.sendMessageWithPromise(
-                tokenId,
-                "activity_startactegame",
-                { actId: claimActId },
-                5000,
-              );
-              claimCount++;
-              addLog({
-                time: new Date().toLocaleTimeString(),
-                message: `${token.name} 活动 ${claimActId} 领取奖励第 ${claimCount} 次`,
-                type: "success",
-              });
-              await new Promise((r) => setTimeout(r, 300));
-            }
-          } catch (e) {
-            addLog({
-              time: new Date().toLocaleTimeString(),
-              message: `${token.name} 活动 ${claimActId} 领取结束（共 ${claimCount} 次）`,
-              type: claimCount > 0 ? "success" : "info",
-            });
+
+        if (rewardPlan.total > 0) {
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 闯关结束，开始领取 ${rewardPlan.total} 次奖励`,
+            type: "info",
+          });
+        }
+
+        for (
+          let claimIndex = 0;
+          claimIndex < rewardPlan.total && !shouldStop.value;
+          claimIndex++
+        ) {
+          await tokenStore.sendMessageWithPromise(
+            tokenId,
+            "activity_startactegame",
+            { actId: rewardPlan.actId },
+            5000,
+          );
+          claimCount++;
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 活动 ${rewardPlan.actId} 领取奖励第 ${claimCount}/${rewardPlan.total} 次`,
+            type: "success",
+          });
+
+          if (claimIndex < rewardPlan.total - 1) {
+            await new Promise((r) => setTimeout(r, 300));
           }
         }
+
         if (claimCount > 0) {
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `${token.name} 领取奖励 ${claimCount} 次`,
+            message: `${token.name} 领取奖励 ${claimCount}/${rewardPlan.total} 次`,
             type: "success",
+          });
+        } else if (!shouldStop.value) {
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 没有可领取的换皮闯关奖励`,
+            type: "info",
           });
         }
 
