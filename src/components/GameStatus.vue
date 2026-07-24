@@ -49,6 +49,9 @@
     <!-- 挂机状态（提取组件） -->
     <HangUpStatusCard v-show="activeSection === 'daily'" />
 
+    <!-- 无限阵容助手（提取组件） -->
+    <Unlimitedlineup v-show="activeSection === 'tools'" />
+
     <!-- 宝箱助手（提取组件） -->
     <BoxHelperCard v-show="activeSection === 'tools'" />
 
