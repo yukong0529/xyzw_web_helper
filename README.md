@@ -179,6 +179,44 @@ Cloudflare Pages 会自动识别 `dist/_worker.js` 并启用 Advanced Mode，无
 
 > 注意：`npm run preview` 仅提供静态文件预览，无法执行 `worker.js` 中的代理逻辑。请使用 `wrangler` 进行全功能预览。
 
+### Docker 部署
+
+Docker 部署使用单个 Nginx 容器，同时提供 Vue 静态页面和 `/api` 代理。容器不会执行前端构建，因此请先在开发机生成 `dist/`：
+
+```bash
+npm install
+npm run build
+```
+
+将以下内容上传到服务器，并保持目录结构不变：
+
+```text
+dist/
+docker/Dockerfile
+docker/nginx.conf
+docker/install.sh
+docker-compose.yml
+.dockerignore
+```
+
+在服务器项目目录启动：
+
+```bash
+docker compose up -d --build
+```
+
+启动后访问 `http://服务器地址:4173`。常用维护命令：
+
+```bash
+docker compose ps
+docker compose logs -f web
+docker compose down
+```
+
+更新前端时，替换服务器上的 `dist/`，再执行 `docker compose up -d --build`。
+
+> Docker 部署中的 Nginx 已提供 `/api/weixin`、`/api/weixin-long` 和 `/api/hortor` 代理，无需单独运行 Cloudflare Worker。
+
 ### 部署TokenURL获取服务 (Python)
 
 本项目提供了一个基于 Python Flask 的配套后端服务，用于管理游戏 bin 文件并提供 Token 获取接口。
