@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   getSkinChallengeRewardPlan,
   getSkinChallengeRewardQuantity,
+  getSkinChallengeStageNum,
 } from "../src/utils/skinChallengeReward.js";
 
 assert.deepEqual(
@@ -20,17 +21,21 @@ assert.deepEqual(
 );
 
 assert.equal(
-  getSkinChallengeRewardQuantity({
-    data: { role: { items: { 5274: { quantity: 6 } } } },
-  }),
-  6,
-  "uses the stage claim response as the authoritative remaining quantity",
+  getSkinChallengeRewardQuantity({ role: { items: { 5274: { quantity: 4 } } } }),
+  4,
+  "reads item 5274 directly from the command response body",
 );
 
 assert.equal(
   getSkinChallengeRewardQuantity({ data: { role: { items: {} } } }),
   0,
   "treats an absent item 5274 in the stage claim response as zero remaining",
+);
+
+assert.equal(
+  getSkinChallengeStageNum({ actEGame: { stageNum: 5 } }),
+  5,
+  "reads the stage number directly from the command response body",
 );
 
 console.log("skin challenge reward tests passed");

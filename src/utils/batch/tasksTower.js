@@ -2,6 +2,7 @@ import { getTowerActId } from "../towerActId.js";
 import {
   getSkinChallengeRewardPlan,
   getSkinChallengeRewardQuantity,
+  getSkinChallengeStageNum,
 } from "../skinChallengeReward.js";
 
 /**
@@ -909,7 +910,7 @@ export function createTasksTower(deps) {
           claimCount++;
           remainingClaimCount--;
 
-          const stageNum = Number(claimResponse?.data?.actEGame?.stageNum);
+          const stageNum = getSkinChallengeStageNum(claimResponse);
           if (stageNum > 0 && stageNum % 5 === 0) {
             const stageClaimResponse = await tokenStore.sendMessageWithPromise(
               tokenId,
