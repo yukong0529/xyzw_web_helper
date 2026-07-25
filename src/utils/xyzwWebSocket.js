@@ -392,7 +392,8 @@ export function registerDefaultCommands(reg) {
     .register("saltcup26_placebet", { matchId: "", pick: 0 })
 
     // 换皮闯关领奖
-    .register("activity_startactegame", { actId: 0 });
+    .register("activity_startactegame", { actId: 0 })
+    .register("activity_actegamestageclaim", { actId: 0 });
   registry.commands.set(
     "fight_startareaarena",
     (ack = 0, seq = 0, params = {}) => {
@@ -1141,6 +1142,7 @@ export class XyzwWebSocketClient {
       saltcup26_getbetinforesp: "saltcup26_getbetinfo",
       saltcup26_placebetresp: "saltcup26_placebet",
       activity_takeegamerewardresp: "activity_startactegame",
+      activity_actegamestageclaimresp: "activity_actegamestageclaim",
       // 换皮闯关相关响应映射
       towers_getinforesp: "towers_getinfo",
       towers_startresp: "towers_start",

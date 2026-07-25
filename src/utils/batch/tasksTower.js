@@ -1,5 +1,8 @@
 import { getTowerActId } from "../towerActId.js";
-import { getSkinChallengeRewardPlan } from "../skinChallengeReward.js";
+import {
+  getSkinChallengeRewardPlan,
+  getSkinChallengeRewardQuantity,
+} from "../skinChallengeReward.js";
 
 /**
  * 爬塔类任务
@@ -886,6 +889,7 @@ export function createTasksTower(deps) {
           getTowerActId(),
         );
         let claimCount = 0;
+        let remainingClaimCount = rewardPlan.total;
 
         if (rewardPlan.total > 0) {
           addLog({
@@ -895,25 +899,36 @@ export function createTasksTower(deps) {
           });
         }
 
-        for (
-          let claimIndex = 0;
-          claimIndex < rewardPlan.total && !shouldStop.value;
-          claimIndex++
-        ) {
-          await tokenStore.sendMessageWithPromise(
+        while (remainingClaimCount > 0 && !shouldStop.value) {
+          const claimResponse = await tokenStore.sendMessageWithPromise(
             tokenId,
             "activity_startactegame",
             { actId: rewardPlan.actId },
             5000,
           );
           claimCount++;
+          remainingClaimCount--;
+
+          const stageNum = Number(claimResponse?.data?.actEGame?.stageNum);
+          if (stageNum > 0 && stageNum % 5 === 0) {
+            const stageClaimResponse = await tokenStore.sendMessageWithPromise(
+              tokenId,
+              "activity_actegamestageclaim",
+              { actId: rewardPlan.actId },
+              5000,
+            );
+            remainingClaimCount = getSkinChallengeRewardQuantity(
+              stageClaimResponse,
+            );
+          }
+
           addLog({
             time: new Date().toLocaleTimeString(),
             message: `${token.name} 活动 ${getTowerActId()} 领取奖励第 ${claimCount}/${rewardPlan.total} 次`,
             type: "success",
           });
 
-          if (claimIndex < rewardPlan.total - 1) {
+          if (remainingClaimCount > 0) {
             await new Promise((r) => setTimeout(r, 300));
           }
         }
