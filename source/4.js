@@ -125,7 +125,7 @@ const m = {
     role_getroleinfo: (e, t, n, r) = >({
     cmd: "role_getroleinfo",
     body: e.bon.encode({
-        clientVersion: "1.65.3-wx",
+        clientVersion: "2.43.4-a7db1319a3025acb-wx",
         inviteUid: 0,
         platform: "hortor",
         platformExt: "mix",

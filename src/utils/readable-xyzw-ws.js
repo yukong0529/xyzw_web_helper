@@ -219,7 +219,7 @@ const gameMessageTemplates = {
   role_getroleinfo: (client, ack, seq, params) => ({
     cmd: "role_getroleinfo",
     body: client.bon.encode({
-      clientVersion: "2.34.1-efbf6eee83ebe0b7-wx",
+      clientVersion: "2.43.4-a7db1319a3025acb-wx",
       inviteUid: 0,
       platform: "hortor",
       platformExt: "mix",
