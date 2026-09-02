@@ -397,11 +397,25 @@
                   :value="campChallengeMode"
                   :options="campChallengeModeOptions"
                   trigger="click"
+                  :disabled="
+                    isRunning ||
+                    selectedTokens.length === 0 ||
+                    !isCampChallengeOpen
+                  "
                   @update:value="onCampChallengeModeChange"
                 >
                   <n-button
                     size="small"
-                    :disabled="isRunning || selectedTokens.length === 0"
+                    :disabled="
+                      isRunning ||
+                      selectedTokens.length === 0 ||
+                      !isCampChallengeOpen
+                    "
+                    :title="
+                      isCampChallengeOpen
+                        ? ''
+                        : '营地挑战开放时间：周二至周四 08:00-22:00'
+                    "
                   >
                     营地挑战({{ campChallengeModeLabel }})
                   </n-button>
@@ -3027,6 +3041,12 @@ const isCarActivityOpen = computed(() => {
   const hour = now.getHours();
   // 1=Mon, 2=Tue, 3=Wed; 6点之后
   return day >= 1 && day <= 3 && hour >= 6;
+});
+const isCampChallengeOpen = computed(() => {
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+  return day >= 2 && day <= 4 && hour >= 8 && hour < 22;
 });
 const ismengjingActivityOpen = computed(() => {
   const day = new Date().getDay();
@@ -5834,6 +5854,10 @@ const campChallengeModeLabel = computed(() => {
   return campChallengeModeOptions.find((o) => o.value === campChallengeMode.value)?.label || "";
 });
 const onCampChallengeModeChange = async (val) => {
+  if (!isCampChallengeOpen.value) {
+    message.warning("营地挑战开放时间：周二至周四 08:00-22:00");
+    return;
+  }
   campChallengeMode.value = val;
   if (val === "pet") {
     await batchCampChallengePet();

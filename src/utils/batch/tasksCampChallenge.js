@@ -153,15 +153,27 @@ export function createTasksCampChallenge(deps) {
           type: "info",
         });
 
-        const oppoMap = res?.club?.oppoMap || {};
-        const opponents = Object.entries(oppoMap).sort(
-          ([a], [b]) => Number(a) - Number(b),
-        );
+        // 营地目标按开放日分组：周二 oppoMap2、周三 oppoMap3、周四 oppoMap4。
+        const oppoMap = res?.club?.oppoMap || res?.oppoMap || {};
+        const todayWeekDay = now.getDay();
+        const todayOppoKey = [2, 3, 4].includes(todayWeekDay)
+          ? String(todayWeekDay)
+          : null;
+        const todayOppoMapKey = todayOppoKey ? `oppoMap${todayOppoKey}` : null;
+        const todayOpponent = todayOppoKey
+          ? res?.club?.[todayOppoMapKey] ||
+            res?.[todayOppoMapKey] ||
+            oppoMap[todayOppoKey] ||
+            oppoMap[todayOppoMapKey]
+          : null;
+        const opponents = todayOpponent
+          ? [[todayOppoKey, todayOpponent]]
+          : [];
 
         if (opponents.length === 0) {
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `${token.name} 没有可挑战的目标`,
+            message: `${token.name} 今日没有可挑战的目标`,
             type: "warning",
           });
           tokenStatus.value[tokenId] = "completed";
