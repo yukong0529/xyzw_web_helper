@@ -10,6 +10,11 @@ const isSilentCampError = (error) => {
   return code === 200020 || /(?:^|\D)200020(?:\D|$)/.test(error?.message || String(error));
 };
 
+const isCampDailyLimitError = (error) => {
+  const code = Number(error?.code ?? error?.errorCode);
+  return code === 13000090 || /(?:^|\D)13000090(?:\D|$)/.test(error?.message || String(error));
+};
+
 const formatBattleTeam = (battleTeam) =>
   Object.values(battleTeam)
     .map((heroId) => HERO_DICT[heroId]?.name || `武将${heroId}`)
@@ -50,6 +55,7 @@ export function createTasksCampChallenge(deps) {
       tokenStatus.value[id] = "waiting";
     });
 
+    let dailyLimitReached = false;
     const taskPromises = selectedTokens.value.map(async (tokenId) => {
       if (shouldStop.value) return;
       tokenStatus.value[tokenId] = "running";
@@ -253,6 +259,11 @@ export function createTasksCampChallenge(deps) {
               defender.defeated = true;
             }
           } catch (err) {
+            if (isCampDailyLimitError(err)) {
+              dailyLimitReached = true;
+              tokenStatus.value[tokenId] = "completed";
+              return;
+            }
             if (!isSilentCampError(err)) {
               addLog({
                 time: new Date().toLocaleTimeString(),
@@ -271,6 +282,11 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
+        if (isCampDailyLimitError(error)) {
+          dailyLimitReached = true;
+          tokenStatus.value[tokenId] = "completed";
+          return;
+        }
         if (!isSilentCampError(error)) console.error(error);
         tokenStatus.value[tokenId] = "failed";
         if (!isSilentCampError(error)) {
@@ -296,8 +312,10 @@ export function createTasksCampChallenge(deps) {
     currentRunningTokenId.value = null;
     message.success("批量营地挑战结束");
 
-    // 领取任务奖励
-    await batchCampClaimTasks();
+    // 领取任务奖励；达到每日挑战上限时直接结束，不再进入后续任务。
+    if (!dailyLimitReached && !shouldStop.value) {
+      await batchCampClaimTasks();
+    }
   };
 
   /**
@@ -403,6 +421,10 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
+        if (isCampDailyLimitError(error)) {
+          tokenStatus.value[tokenId] = "completed";
+          return;
+        }
         if (!isSilentCampError(error)) console.error(error);
         tokenStatus.value[tokenId] = "failed";
         if (!isSilentCampError(error)) {
@@ -516,6 +538,7 @@ export function createTasksCampChallenge(deps) {
               type: "success",
             });
           } catch (err) {
+            if (isCampDailyLimitError(err)) return;
             if (!isSilentCampError(err)) {
               addLog({
                 time: new Date().toLocaleTimeString(),
@@ -534,6 +557,10 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
+        if (isCampDailyLimitError(error)) {
+          tokenStatus.value[tokenId] = "completed";
+          return;
+        }
         if (!isSilentCampError(error)) console.error(error);
         tokenStatus.value[tokenId] = "failed";
         if (!isSilentCampError(error)) {
