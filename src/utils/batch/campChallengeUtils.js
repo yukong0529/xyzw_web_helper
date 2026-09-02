@@ -12,3 +12,8 @@ export function isCampChallengeDailyLimitError(error, operation) {
   const code = Number(error?.code ?? error?.errorCode);
   return code === 13000090 || /(?:^|\D)13000090(?:\D|$)/.test(error?.message || String(error));
 }
+
+export function isCampChallengeTargetChangedError(error) {
+  const code = Number(error?.code ?? error?.errorCode);
+  return code === 13000070 || /(?:^|\D)13000070(?:\D|$)/.test(error?.message || String(error));
+}

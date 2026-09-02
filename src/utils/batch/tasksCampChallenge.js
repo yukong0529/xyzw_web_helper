@@ -8,6 +8,7 @@ import {
   getCampChallengeSuccessCount,
   getCampChallengeSuccessLimit,
   isCampChallengeDailyLimitError,
+  isCampChallengeTargetChangedError,
 } from "./campChallengeUtils.js";
 
 const isSilentCampError = (error) => {
@@ -325,6 +326,20 @@ export function createTasksCampChallenge(deps) {
                 type: "error",
               });
             } catch (err) {
+              if (isCampChallengeTargetChangedError(err)) {
+                addLog({
+                  time: new Date().toLocaleTimeString(),
+                  message: `${token.name} 挑战目标信息已变化，正在刷新后重试: ${opponentName} - ${defender.name}`,
+                  type: "warning",
+                });
+                await tokenStore.sendMessageWithPromise(
+                  tokenId,
+                  "club_gettargetteam",
+                  { targetId: defender.roleId },
+                  5000,
+                );
+                continue;
+              }
               targetFailCount++;
               if (!isSilentCampError(err)) {
                 addLog({

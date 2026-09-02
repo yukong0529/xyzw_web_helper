@@ -5,6 +5,7 @@ import {
   getCampChallengeSuccessLimit,
   getCampChallengeSuccessCount,
   isCampChallengeDailyLimitError,
+  isCampChallengeTargetChangedError,
 } from "../src/utils/batch/campChallengeUtils.js";
 
 test("默认营地成功挑战上限为3次", () => {
@@ -37,4 +38,9 @@ test("不输出今日成功挑战进度的重复日志", () => {
     "utf8",
   );
   assert.equal(source.includes("message: `${token.name} 今日成功挑战 ${successCountToday}/${successLimit} 次`"), false);
+});
+
+test("识别营地挑战目标数据变化错误", () => {
+  assert.equal(isCampChallengeTargetChangedError({ code: 13000070 }), true);
+  assert.equal(isCampChallengeTargetChangedError({ code: 13000090 }), false);
 });
