@@ -798,6 +798,14 @@
               size="small"
             />
           </div>
+          <div class="setting-item">
+            <label class="setting-label">营地成功次数</label>
+            <n-select
+              v-model:value="currentSettings.campChallengeSuccessLimit"
+              :options="campChallengeSuccessLimitOptions"
+              size="small"
+            />
+          </div>
           <div class="setting-switches">
             <div class="switch-row">
               <span class="switch-label">领罐子</span
@@ -3035,6 +3043,10 @@ const getSortIcon = (field) => {
 };
 
 const tokens = computed(() => tokenStore.gameTokens);
+const campChallengeSuccessLimitOptions = [
+  { label: "3次", value: 3 },
+  { label: "5次", value: 5 },
+];
 const isCarActivityOpen = computed(() => {
   const now = new Date();
   const day = now.getDay();
@@ -3348,6 +3360,7 @@ const currentSettings = reactive({
   claimHangUp: true,
   claimEmail: true,
   blackMarketPurchase: true,
+  campChallengeSuccessLimit: 3,
 });
 
 // Task Template State
@@ -5013,6 +5026,7 @@ const loadSettings = (tokenId) => {
       claimHangUp: true,
       claimEmail: true,
       blackMarketPurchase: true,
+      campChallengeSuccessLimit: 3,
     };
     return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings;
   } catch (error) {

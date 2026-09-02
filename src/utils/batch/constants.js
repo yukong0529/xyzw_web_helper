@@ -127,6 +127,7 @@ export const defaultSettings = {
   claimHangUp: true,
   claimEmail: true,
   blackMarketPurchase: true,
+  campChallengeSuccessLimit: 3,
 };
 
 // 默认批量设置

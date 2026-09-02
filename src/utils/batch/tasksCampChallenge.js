@@ -4,15 +4,23 @@
  */
 
 import { HERO_DICT } from "../HeroList.js";
+import {
+  getCampChallengeSuccessCount,
+  getCampChallengeSuccessLimit,
+  isCampChallengeDailyLimitError,
+} from "./campChallengeUtils.js";
 
 const isSilentCampError = (error) => {
   const code = Number(error?.code ?? error?.errorCode);
   return code === 200020 || /(?:^|\D)200020(?:\D|$)/.test(error?.message || String(error));
 };
 
-const isCampDailyLimitError = (error) => {
-  const code = Number(error?.code ?? error?.errorCode);
-  return code === 13000090 || /(?:^|\D)13000090(?:\D|$)/.test(error?.message || String(error));
+const logCampDailyLimit = (addLog, tokenName) => {
+  addLog({
+    time: new Date().toLocaleTimeString(),
+    message: `${tokenName} 今日成功挑战次数已用完，请明日再来`,
+    type: "warning",
+  });
 };
 
 const formatBattleTeam = (battleTeam) =>
@@ -135,6 +143,10 @@ export function createTasksCampChallenge(deps) {
         const attackMap = siege.attackMap || {};
         const todayAttack = attackMap[todayKey] || {};
         const attackCnt = todayAttack.attackCnt || 0;
+        const successCountToday = getCampChallengeSuccessCount(todayAttack);
+        const successLimit = getCampChallengeSuccessLimit(
+          loadSettings ? loadSettings(tokenId) : {},
+        );
         const maxAttacks = 10;
 
         if (attackCnt >= maxAttacks) {
@@ -152,6 +164,21 @@ export function createTasksCampChallenge(deps) {
           message: `${token.name} 今日已挑战 ${attackCnt}/${maxAttacks} 次`,
           type: "info",
         });
+        addLog({
+          time: new Date().toLocaleTimeString(),
+          message: `${token.name} 今日成功挑战 ${successCountToday}/${successLimit} 次`,
+          type: "info",
+        });
+
+        if (successCountToday >= successLimit) {
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 今日成功挑战次数已用完，请明日再来`,
+            type: "warning",
+          });
+          tokenStatus.value[tokenId] = "completed";
+          return;
+        }
 
         // 营地目标按开放日分组：周二 oppoMap2、周三 oppoMap3、周四 oppoMap4。
         const oppoMap = res?.club?.oppoMap || res?.oppoMap || {};
@@ -183,7 +210,7 @@ export function createTasksCampChallenge(deps) {
         // 3. 收集所有可挑战的防守者，随机顺序挑战
         // 成功最多计 3 次；失败仍会消耗每日挑战次数（最多 10 次）。
         const remainingAttacks = maxAttacks - attackCnt;
-        const maxSuccesses = 3;
+        const maxSuccesses = successLimit - successCountToday;
         let successCount = 0;
         let attackCount = 0;
 
@@ -241,7 +268,7 @@ export function createTasksCampChallenge(deps) {
           ) {
             addLog({
               time: new Date().toLocaleTimeString(),
-              message: `${token.name} 挑战目标(成功 ${successCount}/${maxSuccesses}，今日 ${attackCnt + attackCount}/${maxAttacks}): ${opponentName} - ${defender.name} (节点${nodeId})`,
+              message: `${token.name} 挑战目标(成功 ${successCountToday + successCount}/${successLimit}，今日 ${attackCnt + attackCount}/${maxAttacks}): ${opponentName} - ${defender.name} (节点${nodeId})`,
               type: "info",
             });
 
@@ -255,19 +282,30 @@ export function createTasksCampChallenge(deps) {
               );
 
               // 发起挑战。无论胜负，该请求都计入每日挑战次数。
-              const attackRes = await tokenStore.sendMessageWithPromise(
-                tokenId,
-                "club_attack",
-                {
-                  nodeId: Number(nodeId),
-                  targetId: defender.roleId,
-                  challengeCnt: defender.challengeCnt || 0,
-                  failCnt: defender.failCnt || 0,
-                  useItem: false,
-                  teamSetParams,
-                },
-                8000,
-              );
+              let attackRes;
+              try {
+                attackRes = await tokenStore.sendMessageWithPromise(
+                  tokenId,
+                  "club_attack",
+                  {
+                    nodeId: Number(nodeId),
+                    targetId: defender.roleId,
+                    challengeCnt: defender.challengeCnt || 0,
+                    failCnt: defender.failCnt || 0,
+                    useItem: false,
+                    teamSetParams,
+                  },
+                  8000,
+                );
+              } catch (attackError) {
+                if (isCampChallengeDailyLimitError(attackError, "challenge")) {
+                  dailyLimitReached = true;
+                  tokenStatus.value[tokenId] = "completed";
+                  logCampDailyLimit(addLog, token.name);
+                  return;
+                }
+                throw attackError;
+              }
 
               attackCount++;
               const battleResult =
@@ -280,7 +318,7 @@ export function createTasksCampChallenge(deps) {
                 defender.defeated = true;
                 addLog({
                   time: new Date().toLocaleTimeString(),
-                  message: `${token.name} 胜利: ${opponentName} - ${defender.name}（成功 ${successCount}/${maxSuccesses}${rewardCount > 0 ? `，获得${rewardCount}个奖励` : ""}）`,
+                  message: `${token.name} 胜利: ${opponentName} - ${defender.name}（成功 ${successCountToday + successCount}/${successLimit}${rewardCount > 0 ? `，获得${rewardCount}个奖励` : ""}）`,
                   type: "success",
                 });
                 break;
@@ -293,11 +331,6 @@ export function createTasksCampChallenge(deps) {
                 type: "error",
               });
             } catch (err) {
-              if (isCampDailyLimitError(err)) {
-                dailyLimitReached = true;
-                tokenStatus.value[tokenId] = "completed";
-                return;
-              }
               targetFailCount++;
               if (!isSilentCampError(err)) {
                 addLog({
@@ -312,17 +345,12 @@ export function createTasksCampChallenge(deps) {
 
         addLog({
           time: new Date().toLocaleTimeString(),
-          message: `${token.name} 营地挑战完成，成功 ${successCount}/${maxSuccesses} 次，实际挑战 ${attackCount} 次（今日 ${attackCnt + attackCount}/${maxAttacks}）`,
+          message: `${token.name} 营地挑战完成，成功 ${successCountToday + successCount}/${successLimit} 次，实际挑战 ${attackCount} 次（今日 ${attackCnt + attackCount}/${maxAttacks}）`,
           type: "info",
         });
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        if (isCampDailyLimitError(error)) {
-          dailyLimitReached = true;
-          tokenStatus.value[tokenId] = "completed";
-          return;
-        }
         if (!isSilentCampError(error)) console.error(error);
         tokenStatus.value[tokenId] = "failed";
         if (!isSilentCampError(error)) {
@@ -434,15 +462,25 @@ export function createTasksCampChallenge(deps) {
           type: "info",
         });
 
-        const attackRes = await tokenStore.sendMessageWithPromise(
-          tokenId,
-          "club_attackmonster",
-          {
-            useItem: false,
-            teamSetParams,
-          },
-          8000,
-        );
+        let attackRes;
+        try {
+          attackRes = await tokenStore.sendMessageWithPromise(
+            tokenId,
+            "club_attackmonster",
+            {
+              useItem: false,
+              teamSetParams,
+            },
+            8000,
+          );
+        } catch (attackError) {
+          if (isCampChallengeDailyLimitError(attackError, "challenge")) {
+            tokenStatus.value[tokenId] = "completed";
+            logCampDailyLimit(addLog, token.name);
+            return;
+          }
+          throw attackError;
+        }
 
         const battleResult =
           attackRes?.battleData?.result?.accept?.ext?.curHP;
@@ -457,10 +495,6 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        if (isCampDailyLimitError(error)) {
-          tokenStatus.value[tokenId] = "completed";
-          return;
-        }
         if (!isSilentCampError(error)) console.error(error);
         tokenStatus.value[tokenId] = "failed";
         if (!isSilentCampError(error)) {
@@ -574,7 +608,6 @@ export function createTasksCampChallenge(deps) {
               type: "success",
             });
           } catch (err) {
-            if (isCampDailyLimitError(err)) return;
             if (!isSilentCampError(err)) {
               addLog({
                 time: new Date().toLocaleTimeString(),
@@ -593,10 +626,6 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        if (isCampDailyLimitError(error)) {
-          tokenStatus.value[tokenId] = "completed";
-          return;
-        }
         if (!isSilentCampError(error)) console.error(error);
         tokenStatus.value[tokenId] = "failed";
         if (!isSilentCampError(error)) {
