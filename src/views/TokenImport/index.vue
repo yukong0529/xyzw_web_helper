@@ -84,14 +84,15 @@
       <!-- Token列表 -->
       <div v-if="tokenStore.hasTokens" class="tokens-section">
         <div class="section-header">
-          <n-space align="center">
+          <div class="section-main">
+            <div class="section-title-row">
             <h2>我的Token列表 ({{ tokenStore.gameTokens.length }}个)</h2>
             <n-radio-group v-model:value="viewMode" size="small">
               <n-radio-button value="list">列表</n-radio-button>
               <n-radio-button value="card">卡片</n-radio-button>
             </n-radio-group>
-            <n-divider vertical style="height: 24px"></n-divider>
-            <n-button-group size="small">
+            </div>
+            <n-button-group size="small" class="sort-buttons">
               <n-button
                 @click="toggleSort('name')"
                 :type="sortConfig.field === 'name' ? 'primary' : 'default'"
@@ -117,7 +118,7 @@
                 最后使用 {{ getSortIcon("lastUsed") }}
               </n-button>
             </n-button-group>
-          </n-space>
+          </div>
           <div class="header-actions">
             <n-button type="info" @click="openGame">
               <template #icon>
@@ -1973,8 +1974,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  row-gap: var(--spacing-md);
+  gap: var(--spacing-xl);
   margin-bottom: var(--spacing-xl);
   position: sticky;
   top: 0;
@@ -1992,14 +1992,30 @@ onUnmounted(() => {
   }
 }
 
+.section-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.sort-buttons {
+  flex-shrink: 0;
+}
+
 .header-actions {
   display: flex;
   gap: var(--spacing-md);
-  flex: 1 1 100%;
-  width: 100%;
-  max-width: none;
+  flex: 0 0 auto;
   overflow: visible;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
 }
 
@@ -2371,8 +2387,17 @@ onUnmounted(() => {
     align-items: stretch;
   }
 
+  .section-main {
+    width: 100%;
+  }
+
+  .section-title-row {
+    flex-wrap: wrap;
+  }
+
   .header-actions {
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .token-timestamps {
