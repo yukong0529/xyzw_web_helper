@@ -1973,6 +1973,8 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
   position: sticky;
   top: 0;
@@ -1993,10 +1995,12 @@ onUnmounted(() => {
 .header-actions {
   display: flex;
   gap: var(--spacing-md);
-  max-width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  flex-wrap: nowrap;
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: none;
+  overflow: visible;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .tokens-grid {
@@ -2365,6 +2369,10 @@ onUnmounted(() => {
     flex-direction: column;
     gap: var(--spacing-md);
     align-items: stretch;
+  }
+
+  .header-actions {
+    justify-content: flex-start;
   }
 
   .token-timestamps {
