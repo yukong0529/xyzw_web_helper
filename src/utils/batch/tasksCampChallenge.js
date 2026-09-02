@@ -164,12 +164,6 @@ export function createTasksCampChallenge(deps) {
           message: `${token.name} 今日已挑战 ${attackCnt}/${maxAttacks} 次`,
           type: "info",
         });
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `${token.name} 今日成功挑战 ${successCountToday}/${successLimit} 次`,
-          type: "info",
-        });
-
         if (successCountToday >= successLimit) {
           addLog({
             time: new Date().toLocaleTimeString(),

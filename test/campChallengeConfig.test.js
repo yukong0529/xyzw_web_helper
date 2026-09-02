@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 import {
   getCampChallengeSuccessLimit,
@@ -28,4 +29,12 @@ test("仅发起挑战请求处理13000090", () => {
   assert.equal(isCampChallengeDailyLimitError(error, "challenge"), true);
   assert.equal(isCampChallengeDailyLimitError(error, "getInfo"), false);
   assert.equal(isCampChallengeDailyLimitError(error, "claimReward"), false);
+});
+
+test("不输出今日成功挑战进度的重复日志", () => {
+  const source = fs.readFileSync(
+    new URL("../src/utils/batch/tasksCampChallenge.js", import.meta.url),
+    "utf8",
+  );
+  assert.equal(source.includes("message: `${token.name} 今日成功挑战 ${successCountToday}/${successLimit} 次`"), false);
 });
