@@ -3,6 +3,18 @@
  * 包含: batchCampChallenge, batchCampChallengePet, batchCampClaimTasks
  */
 
+import { HERO_DICT } from "../HeroList.js";
+
+const isSilentCampError = (error) => {
+  const code = Number(error?.code ?? error?.errorCode);
+  return code === 200020 || /(?:^|\D)200020(?:\D|$)/.test(error?.message || String(error));
+};
+
+const formatBattleTeam = (battleTeam) =>
+  Object.values(battleTeam)
+    .map((heroId) => HERO_DICT[heroId]?.name || `武将${heroId}`)
+    .join(", ");
+
 /**
  * 创建营地挑战类任务执行器
  * @param {Object} deps - 依赖项
@@ -95,7 +107,7 @@ export function createTasksCampChallenge(deps) {
 
         addLog({
           time: new Date().toLocaleTimeString(),
-          message: `${token.name} 使用阵容${formationId}: ${Object.values(battleTeam).join(", ")}`,
+          message: `${token.name} 使用阵容${formationId}: ${formatBattleTeam(battleTeam)}`,
           type: "info",
         });
 
@@ -241,11 +253,13 @@ export function createTasksCampChallenge(deps) {
               defender.defeated = true;
             }
           } catch (err) {
-            addLog({
-              time: new Date().toLocaleTimeString(),
-              message: `${token.name} 挑战 ${defender.name} 失败: ${err.message || "未知错误"}`,
-              type: "error",
-            });
+            if (!isSilentCampError(err)) {
+              addLog({
+                time: new Date().toLocaleTimeString(),
+                message: `${token.name} 挑战 ${defender.name} 失败: ${err.message || "未知错误"}`,
+                type: "error",
+              });
+            }
           }
         }
 
@@ -257,13 +271,15 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        if (!isSilentCampError(error)) console.error(error);
         tokenStatus.value[tokenId] = "failed";
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `${token.name} 营地挑战失败: ${error.message || "未知错误"}`,
-          type: "error",
-        });
+        if (!isSilentCampError(error)) {
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 营地挑战失败: ${error.message || "未知错误"}`,
+            type: "error",
+          });
+        }
       } finally {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
@@ -353,7 +369,7 @@ export function createTasksCampChallenge(deps) {
 
         addLog({
           time: new Date().toLocaleTimeString(),
-          message: `${token.name} 使用阵容${formationId}: ${Object.values(battleTeam).join(", ")}`,
+          message: `${token.name} 使用阵容${formationId}: ${formatBattleTeam(battleTeam)}`,
           type: "info",
         });
 
@@ -387,13 +403,15 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        if (!isSilentCampError(error)) console.error(error);
         tokenStatus.value[tokenId] = "failed";
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `${token.name} 营地挑战宠物失败: ${error.message || "未知错误"}`,
-          type: "error",
-        });
+        if (!isSilentCampError(error)) {
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 营地挑战宠物失败: ${error.message || "未知错误"}`,
+            type: "error",
+          });
+        }
       } finally {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
@@ -498,11 +516,13 @@ export function createTasksCampChallenge(deps) {
               type: "success",
             });
           } catch (err) {
-            addLog({
-              time: new Date().toLocaleTimeString(),
-              message: `${token.name} 领取任务 ${confId} 失败: ${err.message || "未知错误"}`,
-              type: "error",
-            });
+            if (!isSilentCampError(err)) {
+              addLog({
+                time: new Date().toLocaleTimeString(),
+                message: `${token.name} 领取任务 ${confId} 失败: ${err.message || "未知错误"}`,
+                type: "error",
+              });
+            }
           }
         }
 
@@ -514,13 +534,15 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        if (!isSilentCampError(error)) console.error(error);
         tokenStatus.value[tokenId] = "failed";
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `${token.name} 领取营地任务奖励失败: ${error.message || "未知错误"}`,
-          type: "error",
-        });
+        if (!isSilentCampError(error)) {
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 领取营地任务奖励失败: ${error.message || "未知错误"}`,
+            type: "error",
+          });
+        }
       } finally {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
