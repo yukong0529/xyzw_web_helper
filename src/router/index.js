@@ -33,6 +33,18 @@ const my_routes = [
     })
   },
   {
+    path: '/game',
+    name: 'GamePlayer',
+    component: () => import('@/views/GamePlayer.vue'),
+    meta: {
+      title: '游戏',
+      requiresToken: true
+    },
+    props: route => ({
+      bin_id: route.query.bin_id
+    })
+  },
+  {
     name: 'DefaultLayout',
     path: '/admin',
     component: () => import('@/layout/DefaultLayout.vue'),
@@ -97,6 +109,15 @@ const my_routes = [
         component: () => import('@/views/BatchDailyTasks.vue'),
         meta: {
           title: '批量日常',
+          requiresToken: true
+        }
+      },
+      {
+        path: 'PushingLevels',
+        name: 'PushingLevels',
+        component: () => import('@/views/PushingLevels.vue'),
+        meta: {
+          title: '主线推关',
           requiresToken: true
         }
       },

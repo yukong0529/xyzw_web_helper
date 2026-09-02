@@ -1,0 +1,13 @@
+{
+ "name": "xyzw-backend",
+ "version": "1.0.0",
+ "main": "server.js",
+ "scripts": {
+ "start": "node server.js"
+ },
+ "dependencies": {
+ "@supabase/supabase-js": "^2.39.0",
+ "node-cron": "^3.0.3",
+ "ws": "^8.16.0"
+ }
+}
