@@ -136,6 +136,14 @@
               </template>
               批量功能
             </n-button>
+            <n-button type="warning" @click="goToPushingLevels">
+              <template #icon>
+                <n-icon>
+                  <Rocket />
+                </n-icon>
+              </template>
+              主线推关
+            </n-button>
 
             <n-button
               v-if="!showImportForm"
@@ -638,6 +646,7 @@ import {
   Key,
   Menu,
   Refresh,
+  Rocket,
   Star,
   SyncCircle,
   TrashBin,
@@ -1512,6 +1521,10 @@ const formatTime = (timestamp) => {
 
 const goToDashboard = () => {
   router.push("/admin/batch-daily-tasks");
+};
+
+const goToPushingLevels = () => {
+  router.push("/admin/PushingLevels");
 };
 
 // ============ BIN 格式转换（来自 convertBin.mjs） ============
