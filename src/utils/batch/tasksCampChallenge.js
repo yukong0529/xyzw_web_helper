@@ -168,8 +168,11 @@ export function createTasksCampChallenge(deps) {
           return;
         }
 
-        // 3. 收集所有可挑战的防守者，随机顺序挑战（最多3次）
-        const remainingAttacks = Math.min(maxAttacks - attackCnt, 3);
+        // 3. 收集所有可挑战的防守者，随机顺序挑战
+        // 成功最多计 3 次；失败仍会消耗每日挑战次数（最多 10 次）。
+        const remainingAttacks = maxAttacks - attackCnt;
+        const maxSuccesses = 3;
+        let successCount = 0;
         let attackCount = 0;
 
         // 收集所有未击败的防守者到一个池子
@@ -208,75 +211,96 @@ export function createTasksCampChallenge(deps) {
         }
 
         for (const target of availableTargets) {
-          if (shouldStop.value || attackCount >= remainingAttacks) break;
+          if (
+            shouldStop.value ||
+            successCount >= maxSuccesses ||
+            attackCount >= remainingAttacks
+          )
+            break;
 
           const { opponentName, nodeId, defender } = target;
+          let targetFailCount = 0;
 
-          addLog({
-            time: new Date().toLocaleTimeString(),
-            message: `${token.name} 挑战目标(${attackCount + 1}/${remainingAttacks}): ${opponentName} - ${defender.name} (节点${nodeId})`,
-            type: "info",
-          });
-
-          try {
-            // 获取目标阵容
-            await tokenStore.sendMessageWithPromise(
-              tokenId,
-              "club_gettargetteam",
-              { targetId: defender.roleId },
-              5000,
-            );
-
-            // 发起挑战
-            const attackRes = await tokenStore.sendMessageWithPromise(
-              tokenId,
-              "club_attack",
-              {
-                nodeId: Number(nodeId),
-                targetId: defender.roleId,
-                challengeCnt: defender.challengeCnt || 0,
-                failCnt: defender.failCnt || 0,
-                useItem: false,
-                teamSetParams,
-              },
-              8000,
-            );
-
-            // 判断战斗结果
-            const battleResult =
-              attackRes?.battleData?.result?.accept?.ext?.curHP;
-            const isWin = battleResult === 0;
-            const rewardCount = attackRes?.reward?.length || 0;
-
-            attackCount++;
+          while (
+            targetFailCount < 3 &&
+            successCount < maxSuccesses &&
+            attackCount < remainingAttacks &&
+            !shouldStop.value
+          ) {
             addLog({
               time: new Date().toLocaleTimeString(),
-              message: `${token.name} ${isWin ? "胜利" : "失败"}: ${opponentName} - ${defender.name}${rewardCount > 0 ? ` (获得${rewardCount}个奖励)` : ""}`,
-              type: isWin ? "success" : "error",
+              message: `${token.name} 挑战目标(成功 ${successCount}/${maxSuccesses}，今日 ${attackCnt + attackCount}/${maxAttacks}): ${opponentName} - ${defender.name} (节点${nodeId})`,
+              type: "info",
             });
 
-            if (isWin) {
-              defender.defeated = true;
-            }
-          } catch (err) {
-            if (isCampDailyLimitError(err)) {
-              dailyLimitReached = true;
-              tokenStatus.value[tokenId] = "completed";
-              return;
-            }
-            if (!isSilentCampError(err)) {
+            try {
+              // 获取目标阵容
+              await tokenStore.sendMessageWithPromise(
+                tokenId,
+                "club_gettargetteam",
+                { targetId: defender.roleId },
+                5000,
+              );
+
+              // 发起挑战。无论胜负，该请求都计入每日挑战次数。
+              const attackRes = await tokenStore.sendMessageWithPromise(
+                tokenId,
+                "club_attack",
+                {
+                  nodeId: Number(nodeId),
+                  targetId: defender.roleId,
+                  challengeCnt: defender.challengeCnt || 0,
+                  failCnt: defender.failCnt || 0,
+                  useItem: false,
+                  teamSetParams,
+                },
+                8000,
+              );
+
+              attackCount++;
+              const battleResult =
+                attackRes?.battleData?.result?.accept?.ext?.curHP;
+              const isWin = battleResult === 0;
+              const rewardCount = attackRes?.reward?.length || 0;
+
+              if (isWin) {
+                successCount++;
+                defender.defeated = true;
+                addLog({
+                  time: new Date().toLocaleTimeString(),
+                  message: `${token.name} 胜利: ${opponentName} - ${defender.name}（成功 ${successCount}/${maxSuccesses}${rewardCount > 0 ? `，获得${rewardCount}个奖励` : ""}）`,
+                  type: "success",
+                });
+                break;
+              }
+
+              targetFailCount++;
               addLog({
                 time: new Date().toLocaleTimeString(),
-                message: `${token.name} 挑战 ${defender.name} 失败: ${err.message || "未知错误"}`,
+                message: `${token.name} 失败: ${opponentName} - ${defender.name}（该目标失败 ${targetFailCount}/3，今日已挑战 ${attackCnt + attackCount}/${maxAttacks}）`,
                 type: "error",
               });
+            } catch (err) {
+              if (isCampDailyLimitError(err)) {
+                dailyLimitReached = true;
+                tokenStatus.value[tokenId] = "completed";
+                return;
+              }
+              targetFailCount++;
+              if (!isSilentCampError(err)) {
+                addLog({
+                  time: new Date().toLocaleTimeString(),
+                  message: `${token.name} 挑战 ${defender.name} 失败（该目标失败 ${targetFailCount}/3）: ${err.message || "未知错误"}`,
+                  type: "error",
+                });
+              }
             }
           }
         }
 
         addLog({
           time: new Date().toLocaleTimeString(),
-          message: `${token.name} 营地挑战完成，共挑战 ${attackCount} 次`,
+          message: `${token.name} 营地挑战完成，成功 ${successCount}/${maxSuccesses} 次，实际挑战 ${attackCount} 次（今日 ${attackCnt + attackCount}/${maxAttacks}）`,
           type: "info",
         });
 
