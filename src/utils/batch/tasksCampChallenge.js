@@ -329,16 +329,10 @@ export function createTasksCampChallenge(deps) {
               if (isCampChallengeTargetChangedError(err)) {
                 addLog({
                   time: new Date().toLocaleTimeString(),
-                  message: `${token.name} 挑战目标信息已变化，正在刷新后重试: ${opponentName} - ${defender.name}`,
+                  message: `${token.name} 挑战目标信息已变化，跳过该目标: ${opponentName} - ${defender.name}`,
                   type: "warning",
                 });
-                await tokenStore.sendMessageWithPromise(
-                  tokenId,
-                  "club_gettargetteam",
-                  { targetId: defender.roleId },
-                  5000,
-                );
-                continue;
+                break;
               }
               targetFailCount++;
               if (!isSilentCampError(err)) {
