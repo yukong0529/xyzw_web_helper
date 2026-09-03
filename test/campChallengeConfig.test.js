@@ -60,3 +60,23 @@ test("目标数据变化时先刷新营地信息再刷新目标阵容", () => {
   );
   assert.match(changedHandler, /MAX_TARGET_REFRESH_RETRIES/);
 });
+
+test("营地限频错误码400340有中文映射", () => {
+  const source = fs.readFileSync(
+    new URL("../src/utils/xyzwWebSocket.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /400340: "操作过快，请稍后重试"/);
+});
+
+test("营地挑战使用命令延迟和任务间延迟", () => {
+  const source = fs.readFileSync(
+    new URL("../src/utils/batch/tasksCampChallenge.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /delayConfig = \{\}/);
+  assert.match(source, /wait\(delayConfig\.command\)/);
+  assert.match(source, /wait\(delayConfig\.task\)/);
+  assert.match(source, /sendCampCommand\(\s*tokenId,\s*"club_attackmonster"/s);
+  assert.match(source, /sendCampCommand\(\s*tokenId,\s*"club_attack"/s);
+});

@@ -63,7 +63,29 @@ export function createTasksCampChallenge(deps) {
     message,
     currentRunningTokenId,
     loadSettings,
+    delayConfig = {},
   } = deps;
+
+  const wait = (milliseconds) => {
+    const delay = Number(milliseconds);
+    if (!Number.isFinite(delay) || delay <= 0) return Promise.resolve();
+    return new Promise((resolve) => setTimeout(resolve, delay));
+  };
+
+  const sendCampCommand = async (tokenId, command, params, timeout) => {
+    try {
+      return await tokenStore.sendMessageWithPromise(
+        tokenId,
+        command,
+        params,
+        timeout,
+      );
+    } finally {
+      await wait(delayConfig.command);
+    }
+  };
+
+  const waitBetweenCampTasks = () => wait(delayConfig.task);
 
   /**
    * 一键营地挑战
@@ -93,13 +115,13 @@ export function createTasksCampChallenge(deps) {
 
         // 1. 获取我方阵容配置（参考 QuenchAnalysisCard.refreshHeroes）
         const [presetTeamResult, roleInfoResult] = await Promise.all([
-          tokenStore.sendMessageWithPromise(
+          sendCampCommand(
             tokenId,
             "presetteam_getinfo",
             {},
             5000,
           ),
-          tokenStore.sendMessageWithPromise(
+          sendCampCommand(
             tokenId,
             "role_getroleinfo",
             {},
@@ -140,7 +162,7 @@ export function createTasksCampChallenge(deps) {
         });
 
         // 2. 获取营地信息和挑战目标
-        let res = await tokenStore.sendMessageWithPromise(
+        let res = await sendCampCommand(
           tokenId,
           "club_getinfo",
           {},
@@ -278,7 +300,7 @@ export function createTasksCampChallenge(deps) {
 
             try {
               // 获取目标阵容
-              await tokenStore.sendMessageWithPromise(
+              await sendCampCommand(
                 tokenId,
                 "club_gettargetteam",
                 { targetId: defender.roleId },
@@ -288,7 +310,7 @@ export function createTasksCampChallenge(deps) {
               // 发起挑战。无论胜负，该请求都计入每日挑战次数。
               let attackRes;
               try {
-                attackRes = await tokenStore.sendMessageWithPromise(
+                attackRes = await sendCampCommand(
                   tokenId,
                   "club_attack",
                   {
@@ -309,6 +331,8 @@ export function createTasksCampChallenge(deps) {
                   return;
                 }
                 throw attackError;
+              } finally {
+                await waitBetweenCampTasks();
               }
 
               attackCount++;
@@ -350,7 +374,7 @@ export function createTasksCampChallenge(deps) {
                   message: `${token.name} 挑战目标信息已变化，正在刷新后重试 (${targetRefreshCount}/${MAX_TARGET_REFRESH_RETRIES}): ${opponentName} - ${defender.name}`,
                   type: "warning",
                 });
-                res = await tokenStore.sendMessageWithPromise(
+                res = await sendCampCommand(
                   tokenId,
                   "club_getinfo",
                   {},
@@ -369,7 +393,7 @@ export function createTasksCampChallenge(deps) {
                 }
                 Object.assign(defender, refreshedDefender);
                 try {
-                  await tokenStore.sendMessageWithPromise(
+                  await sendCampCommand(
                     tokenId,
                     "club_gettargetteam",
                     { targetId: defender.roleId },
@@ -460,13 +484,13 @@ export function createTasksCampChallenge(deps) {
 
         // 获取我方阵容配置
         const [presetTeamResult, roleInfoResult] = await Promise.all([
-          tokenStore.sendMessageWithPromise(
+          sendCampCommand(
             tokenId,
             "presetteam_getinfo",
             {},
             5000,
           ),
-          tokenStore.sendMessageWithPromise(
+          sendCampCommand(
             tokenId,
             "role_getroleinfo",
             {},
@@ -515,7 +539,7 @@ export function createTasksCampChallenge(deps) {
 
         let attackRes;
         try {
-          attackRes = await tokenStore.sendMessageWithPromise(
+          attackRes = await sendCampCommand(
             tokenId,
             "club_attackmonster",
             {
@@ -531,6 +555,8 @@ export function createTasksCampChallenge(deps) {
             return;
           }
           throw attackError;
+        } finally {
+          await waitBetweenCampTasks();
         }
 
         const battleResult =
