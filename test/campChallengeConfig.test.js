@@ -45,11 +45,18 @@ test("识别营地挑战目标数据变化错误", () => {
   assert.equal(isCampChallengeTargetChangedError({ code: 13000090 }), false);
 });
 
-test("目标数据变化时跳过目标而不是刷新重试", () => {
+test("目标数据变化时先刷新营地信息再刷新目标阵容", () => {
   const source = fs.readFileSync(
     new URL("../src/utils/batch/tasksCampChallenge.js", import.meta.url),
     "utf8",
   );
-  assert.equal(source.includes("正在刷新后重试"), false);
-  assert.match(source, /挑战目标信息已变化，跳过该目标/);
+  const changedHandler = source.slice(
+    source.indexOf("if (isCampChallengeTargetChangedError(err))"),
+  );
+  assert.match(changedHandler, /挑战目标信息已变化，正在刷新后重试/);
+  assert.ok(
+    changedHandler.indexOf('"club_getinfo"') <
+      changedHandler.indexOf('"club_gettargetteam"'),
+  );
+  assert.match(changedHandler, /MAX_TARGET_REFRESH_RETRIES/);
 });

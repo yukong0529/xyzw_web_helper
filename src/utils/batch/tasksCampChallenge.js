@@ -11,6 +11,8 @@ import {
   isCampChallengeTargetChangedError,
 } from "./campChallengeUtils.js";
 
+const MAX_TARGET_REFRESH_RETRIES = 3;
+
 const isSilentCampError = (error) => {
   const code = Number(error?.code ?? error?.errorCode);
   return code === 200020 || /(?:^|\D)200020(?:\D|$)/.test(error?.message || String(error));
@@ -28,6 +30,17 @@ const formatBattleTeam = (battleTeam) =>
   Object.values(battleTeam)
     .map((heroId) => HERO_DICT[heroId]?.name || `武将${heroId}`)
     .join(", ");
+
+const getCampOpponent = (response, oppoKey) => {
+  const oppoMap = response?.club?.oppoMap || response?.oppoMap || {};
+  const oppoMapKey = `oppoMap${oppoKey}`;
+  return (
+    response?.club?.[oppoMapKey] ||
+    response?.[oppoMapKey] ||
+    oppoMap[oppoKey] ||
+    oppoMap[oppoMapKey]
+  );
+};
 
 /**
  * 创建营地挑战类任务执行器
@@ -127,7 +140,7 @@ export function createTasksCampChallenge(deps) {
         });
 
         // 2. 获取营地信息和挑战目标
-        const res = await tokenStore.sendMessageWithPromise(
+        let res = await tokenStore.sendMessageWithPromise(
           tokenId,
           "club_getinfo",
           {},
@@ -176,17 +189,12 @@ export function createTasksCampChallenge(deps) {
         }
 
         // 营地目标按开放日分组：周二 oppoMap2、周三 oppoMap3、周四 oppoMap4。
-        const oppoMap = res?.club?.oppoMap || res?.oppoMap || {};
         const todayWeekDay = now.getDay();
         const todayOppoKey = [2, 3, 4].includes(todayWeekDay)
           ? String(todayWeekDay)
           : null;
-        const todayOppoMapKey = todayOppoKey ? `oppoMap${todayOppoKey}` : null;
         const todayOpponent = todayOppoKey
-          ? res?.club?.[todayOppoMapKey] ||
-            res?.[todayOppoMapKey] ||
-            oppoMap[todayOppoKey] ||
-            oppoMap[todayOppoMapKey]
+          ? getCampOpponent(res, todayOppoKey)
           : null;
         const opponents = todayOpponent
           ? [[todayOppoKey, todayOpponent]]
@@ -254,6 +262,7 @@ export function createTasksCampChallenge(deps) {
 
           const { opponentName, nodeId, defender } = target;
           let targetFailCount = 0;
+          let targetRefreshCount = 0;
 
           while (
             targetFailCount < 3 &&
@@ -327,12 +336,51 @@ export function createTasksCampChallenge(deps) {
               });
             } catch (err) {
               if (isCampChallengeTargetChangedError(err)) {
+                targetRefreshCount++;
+                if (targetRefreshCount > MAX_TARGET_REFRESH_RETRIES) {
+                  addLog({
+                    time: new Date().toLocaleTimeString(),
+                    message: `${token.name} 挑战目标信息连续变化，已跳过: ${opponentName} - ${defender.name}`,
+                    type: "warning",
+                  });
+                  break;
+                }
                 addLog({
                   time: new Date().toLocaleTimeString(),
-                  message: `${token.name} 挑战目标信息已变化，跳过该目标: ${opponentName} - ${defender.name}`,
+                  message: `${token.name} 挑战目标信息已变化，正在刷新后重试 (${targetRefreshCount}/${MAX_TARGET_REFRESH_RETRIES}): ${opponentName} - ${defender.name}`,
                   type: "warning",
                 });
-                break;
+                res = await tokenStore.sendMessageWithPromise(
+                  tokenId,
+                  "club_getinfo",
+                  {},
+                  8000,
+                );
+                const refreshedOpponent = getCampOpponent(res, target.oppoKey);
+                const refreshedDefender =
+                  refreshedOpponent?.defenders?.[nodeId];
+                if (!refreshedDefender || refreshedDefender.defeated) {
+                  addLog({
+                    time: new Date().toLocaleTimeString(),
+                    message: `${token.name} 目标已不可挑战，跳过: ${opponentName} - ${defender.name}`,
+                    type: "warning",
+                  });
+                  break;
+                }
+                Object.assign(defender, refreshedDefender);
+                try {
+                  await tokenStore.sendMessageWithPromise(
+                    tokenId,
+                    "club_gettargetteam",
+                    { targetId: defender.roleId },
+                    5000,
+                  );
+                } catch (refreshError) {
+                  if (!isCampChallengeTargetChangedError(refreshError)) {
+                    throw refreshError;
+                  }
+                }
+                continue;
               }
               targetFailCount++;
               if (!isSilentCampError(err)) {
